@@ -2,7 +2,7 @@
 
 A first-person horror shooter in under 16 KB, for Linux and Windows: the smallest native true-3D first-person shooter we know of (as of 2026). The smallest native true-3D ones we found before it are shooter32k (31,232 bytes) and nervk (about 32 KB); DEADWEIGHT (15,132 bytes) is smaller but a 2.5D raycaster.
 
-![A tentacle mass spitting at the player on floor six](assets/screenshot.jpg)
+![The floor-four hunter caught in the flashlight](assets/screenshot.jpg)
 
 Six floors, each a 4×4 grid of cells joined by arched doorways and merged into halls and L-shaped rooms: crypts, storerooms, meat lockers, boiler rooms and catwalks. The power is out. Find the three fuses on each floor; every fuse turns more lamps back on, and all three power the exit. Monsters keep crawling out of the dark rooms: crawler swarms, screamers that run at you and explode, tentacle masses that spit from range and brutes that charge. Each floor bends one rule: alarms kill the lights, crawlers drop from the ceiling, a brute that cannot die before the third fuse hunts you, the power stays dead. Floor six is a boss that only fuses can weaken. Beat it and the run starts again, harder, with more monsters awake and the rules in a new order.
 
