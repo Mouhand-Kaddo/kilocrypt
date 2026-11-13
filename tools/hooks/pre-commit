@@ -1,0 +1,6 @@
+#!/bin/bash
+cd "$(git rev-parse --show-toplevel)" || exit 1
+git diff --cached --quiet -- src Makefile tools/minify_glsl.py tools/pack_linux.py tools/unpack.S tools/winlibs tools/check.sh tools/linux-test && exit 0
+echo "pre-commit: build inputs changed, running make check (git commit --no-verify skips it)"
+make --no-print-directory check || exit 1
+git add sizes.txt

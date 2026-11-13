@@ -1,0 +1,2 @@
+linux 16044
+windows 16384

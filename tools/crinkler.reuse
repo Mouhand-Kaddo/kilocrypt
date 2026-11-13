@@ -1,0 +1,49 @@
+
+# Code models
+00:1 80:3 40:2 C0:3 20:0 EE:6 50:2 30:1 88:2 4D:3
+
+# Data models
+00:1 80:2 40:0 C0:3 60:0 A0:1 E0:2 90:0 B0:1 D0:1 70:0 78:1 A8:0 98:1 C8:0 C4:2 58:1 D8:1 B8:2 A4:2 64:1
+
+# Code sections
+Crinkler import:.text:_Import
+WINDOWS.OBJ:.text:_entry@0
+
+# Data sections
+WINDOWS.OBJ:.rdata:_entry@0.codes
+WINDOWS.OBJ:.rdata:??_C@_0BB@HDMHCCEC@Needs?5OpenGL?54?43?$AA@
+DLLNamesHunk:_DLLNames
+WINDOWS.OBJ:.rdata:??_C@_0O@MDAEEFKG@?$CDversion?5430?6?$AA@
+WINDOWS.OBJ:.rdata:??_C@_0BL@DDFEJDPE@?$CDversion?5430?6?$CDdefine?5GAME?6?$AA@
+WINDOWS.OBJ:.rdata:_gl_names
+WINDOWS.OBJ:.rdata:_shader_source
+WINDOWS.OBJ:.data:_sticky_keys
+WINDOWS.OBJ:.data:_no_sticky_shortcut
+WINDOWS.OBJ:.rdata:__real@0101ffff
+WINDOWS.OBJ:.rdata:_wave_format
+WINDOWS.OBJ:.rdata:__real@01000000
+WINDOWS.OBJ:.rdata:__real@4330000000000000
+WINDOWS.OBJ:.rdata:__xmm@00000000000000009100000000000000
+WINDOWS.OBJ:.rdata:_game_sources
+WINDOWS.OBJ:.rdata:_draw_sources
+WINDOWS.OBJ:.rdata:__real@3a83126f
+WINDOWS.OBJ:.rdata:??_C@_04NABONMNG@edit?$AA@
+WINDOWS.OBJ:.rdata:__xmm@43300000000000004330000000000000
+WINDOWS.OBJ:.rdata:_pixel_format
+
+# Uninitialized sections
+ImportListHunk:_ImportList
+WINDOWS.OBJ:.bss:_focused
+WINDOWS.OBJ:.bss:_message
+Crinkler import:constants:.absolut
+WINDOWS.OBJ:.bss:_held
+WINDOWS.OBJ:.bss:_paused
+WINDOWS.OBJ:.bss:_input
+WINDOWS.OBJ:.bss:_gl
+WINDOWS.OBJ:.bss:_headers
+WINDOWS.OBJ:.bss:_mouse_params
+WINDOWS.OBJ:.bss:_audio
+WINDOWS.OBJ:.bss:_zero
+
+# Hash table size
+524287954

@@ -1,0 +1,7 @@
+LIBRARY kernel32.dll
+EXPORTS
+ExitProcess@4
+LoadLibraryA@4
+CreateFileA@28
+WriteFile@20
+Sleep@4

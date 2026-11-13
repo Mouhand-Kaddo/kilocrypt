@@ -1,0 +1,10 @@
+LIBRARY opengl32.dll
+EXPORTS
+wglCreateContext@4
+wglMakeCurrent@8
+wglGetProcAddress@4
+glRects@16
+glReadPixels@28
+glGetString@4
+glGetError@0
+glClear@4
