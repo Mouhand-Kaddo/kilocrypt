@@ -10,6 +10,7 @@ API void *GetDC(void *);
 API int ShowCursor(int);
 API int PeekMessageA(void *, void *, unsigned, unsigned, unsigned);
 API short GetAsyncKeyState(int);
+API unsigned MapVirtualKeyA(unsigned, unsigned);
 API int GetCursorPos(int *);
 API int SetCursorPos(int, int);
 API int GetSystemMetrics(int);
@@ -166,7 +167,7 @@ void __stdcall entry(void) {
         while (*name++) {}
     }
     if (!gl[6]) goto broken;
-    ((int(GLAPI *)(int))gl[8])(1);
+    if (gl[8]) ((int(GLAPI *)(int))gl[8])(1);
 #ifdef DIAG
     unsigned game = build_program(0x91B9, game_sources, "game"), draw = build_program(0x8B30, draw_sources, "draw");
     log_start = timeGetTime();
@@ -187,15 +188,16 @@ broken:
     SystemParametersInfoA(3, 0, mouse_params, 0);
 
     void *wave;
-    waveOutOpen(&wave, -1, &wave_format, 0, 0, 0);
+    if (!waveOutOpen(&wave, -1, &wave_format, 0, 0, 0)) {
 #ifdef DEV
-    waveOutSetVolume(wave, 0);
+        waveOutSetVolume(wave, 0);
 #endif
-    for (int i = 0; i < AUDIO_BUFFERS; i++) {
-        headers[i].data = audio[i];
-        headers[i].length = AUDIO_SAMPLES * 8;
-        waveOutPrepareHeader(wave, &headers[i], sizeof(WaveHeader));
-        headers[i].flags |= 1;
+        for (int i = 0; i < AUDIO_BUFFERS; i++) {
+            headers[i].data = audio[i];
+            headers[i].length = AUDIO_SAMPLES * 8;
+            waveOutPrepareHeader(wave, &headers[i], sizeof(WaveHeader));
+            headers[i].flags |= 1;
+        }
     }
 
     input[5] = width;
@@ -221,19 +223,20 @@ broken:
                 SetCursorPos(width / 2, height / 2);
             }
 #endif
-            static const char codes[13] = { 'W', 'S', 'A', 'D', ' ', 1, 0x10, '1', '2', '3', '4', 0x1B, 2 };
+            static const char codes[13] = { 0x11, 0x1F, 0x1E, 0x20, ' ', 1, 0x10, '1', '2', '3', '4', 0x1B, 2 };
             keys = wheel;
             for (int k = 0; k < 13; k++)
-                if (GetAsyncKeyState(codes[k]) < 0) keys |= 1 << k;
+                if (GetAsyncKeyState(k < 4 ? MapVirtualKeyA(codes[k], 1) : codes[k]) < 0) keys |= 1 << k;
         }
         if (focused > was) held = keys;
-        if (paused > 1 && keys & ~held & 2048) break;
+        int esc = keys & ~held & 2048;
+        if (paused > 1 && esc) break;
         if (was != focused) {
             SystemParametersInfoA(0x3B, 8, focused ? no_sticky_shortcut : sticky_keys, 0);
             SystemParametersInfoA(4, 0, focused ? (void *)zero : mouse_params, 0);
         }
-        if (keys & ~held & 2048 || focused && paused && held & ~keys & 32) {
-            ShowCursor(paused = paused ? 0 : 1 + (keys & ~held & 2048) / 2048);
+        if (esc || focused && paused && held & ~keys & 32) {
+            ShowCursor(paused = paused ? 0 : 1 + !!esc);
             SetCursorPos(width / 2, height / 2);
         } else if (was > focused && !paused)
             ShowCursor(paused = 1);

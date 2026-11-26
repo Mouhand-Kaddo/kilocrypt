@@ -15,8 +15,7 @@ layout(std430) buffer State {
     vec3 aim;
     float fireCooldown, dashCooldown, shake, punch, hitstop, firing, musicClock, frenzy, frenzyClock, alarm, alarmRoom, spin, whirl, notice, boosted, pulse, swap, shown, guardsDown, droneClock;
     uint seed;
-    float musicStep;
-    float sampleClock, fuses, arsenal, arsenalStart, runTime, deaths, kills, ending, banner, spawnClock, hum, bfsCell;
+    float musicStep, sampleClock, fuses, arsenal, arsenalStart, runTime, deaths, kills, ending, banner, spawnClock, hum, bfsCell;
     vec4 ammo, ammoStart, upgrades, upgradesStart, cursor, beamHit, beamNormal, entity[112], motion[112], monster[16], brain[16], charge[16], pickup[16], boxes[640], boxHalf[640], voice[16];
     float echo[14000], field[6400], pan[16], threat[16];
     int queue[6400], roomStart[17], doors[16], kinds[16], decals, decalList[64];
@@ -26,8 +25,8 @@ layout(std430) buffer State {
 #endif
 };
 
-int material, part, hitBox, dynamicZero = 0;
-vec3 normal = vec3(0);
+int material, part, hitBox, dynamicZero;
+vec3 normal;
 const float monsterStats[40] = float[](0.5, 0.5, 3.0, 10.0, 0.13, 0.0, 1.3, 1.8, 0.4, 1.0, 3.0, 7.5, 0.35, 0.0, 1.3, 2.2, 0.7, 1.0, 9.0, 3.5, 0.15, 1.0, 1.7, 2.5, 0.75, 1.6, 22.0, 4.5, 0.3, 0.0, 2.4, 3.1, 1.8, 2.6, 340.0, 1.6, 0.3, 1.0, 4.6, 6.0);
 
 float stat(int i, int k) {
@@ -90,7 +89,7 @@ void hitShape(int i, vec3 ro, vec3 rd, vec3 m, inout float far) {
     if (h.w > 0.0) {
         vec3 a = h.w == 1.0 || (h.w == 2.0) != (h.x > h.z) ? vec3(1, 0, 0) : vec3(0, 0, 1), b = h.w == 1.0 ? vec3(0, 0, 1) : vec3(0, 1, 0);
         vec2 po = vec2(dot(o, a), dot(o, b) + (h.w == 3.0 ? h.y : 0.0)), pd = vec2(dot(rd, a), dot(rd, b));
-        float radius = h.w == 3.0 ? max(h.x, h.z) : min(min(h.x, h.z), h.w == 1.0 ? 9.0 : h.y), qa = dot(pd, pd), qb = dot(po, pd), disc = qb * qb - qa * (dot(po, po) - radius * radius), c0 = (-qb - sqrt(disc)) / qa, c1 = (-qb + sqrt(disc)) / qa;
+        float radius = h.w == 3.0 ? max(h.x, h.z) : min(min(h.x, h.z), h.w == 1.0 ? 9.0 : h.y), qa = dot(pd, pd), qb = dot(po, pd), disc = qb * qb - qa * (dot(po, po) - radius * radius), s = sqrt(disc), c0 = (-qb - s) / qa, c1 = (-qb + s) / qa;
         if (h.w == 3.0) {
             if (disc > 0.0 && t > c0 && t < c1) {
                 if (c1 >= exit) return;
@@ -176,8 +175,7 @@ float creature(vec3 p, vec4 info) {
     } else {
         float s = type > 2.0 ? 1.6 : 1.0, swing = sin(phase) * sign(p.x) * 0.45;
         p = p / s + vec3(0, 1, 0);
-        vec3 q = vec3(abs(p.x), p.yz);
-        vec3 knee = vec3(0.17, 0.55, 0.15 + swing * 0.5), elbow = vec3(0.42, 1.1, 0.4 - swing * 0.4), hand = vec3(0.3, 0.3, 0.7 + swing * 0.3), head = vec3(sin(floor(phase * 4.0) * 7.3) * 0.12, 1.5, 0.7);
+        vec3 q = vec3(abs(p.x), p.yz), knee = vec3(0.17, 0.55, 0.15 + swing * 0.5), elbow = vec3(0.42, 1.1, 0.4 - swing * 0.4), hand = vec3(0.3, 0.3, 0.7 + swing * 0.3), head = vec3(sin(floor(phase * 4.0) * 7.3) * 0.12, 1.5, 0.7);
         d = min(capsule(q, vec3(0.13, 1, 0), knee, 0.07), capsule(q, knee, vec3(0.15, 0.05, swing), 0.05));
         d = smin(d, capsule(p, vec3(0, 0.95, 0), vec3(0, 1.42, 0.5), 0.15), 0.1);
         d = smin(d, capsule(p, head, head - vec3(0, 0.22, -0.06), 0.13), 0.05);
@@ -186,10 +184,7 @@ float creature(vec3 p, vec4 info) {
         f = maw((p - head - vec3(0, -0.15, 0.14)) * vec3(1.2, 0.6, 1), 0.09, d) * s;
         if (s > 1.0) d = min(d, min(capsule(q, vec3(0.1, 1.6, 0.7), vec3(0.38, 1.75, 0.6), 0.04), capsule(q, vec3(0.38, 1.75, 0.6), vec3(0.55, 1.85, 1.05), 0.012)));
         e = min(length(vec3(abs(p.x - head.x), p.yz) - head - vec3(0.06, 0.06, 0.12)) - 0.035, length(p - head - vec3(0, -0.07, 0.1)) - 0.045);
-        if (s < 1.5) {
-            vec3 belly = p - vec3(0, 1.05, 0.3);
-            d = smin(d, length(belly) - 0.3, 0.1);
-        }
+        if (s < 1.5) d = smin(d, length(p - vec3(0, 1.05, 0.3)) - 0.3, 0.1);
         e *= s;
         d = d * s - s * 0.04 + 0.04;
     }
@@ -340,7 +335,7 @@ int cellOf(vec3 p) {
 void chord(float root, int n) {
     noteOffset = 4725.0 - musicClock;
     for (int k = 0; k < n + dynamicZero; k++) {
-        playNote(15.0, root + float(50992 >> k * 4 & 15), 1.0);
+        playNote(15.0, root + (50992 >> k * 4 & 15), 1.0);
         noteOffset += 2362.5;
     }
     noteOffset = 0.0;
@@ -348,7 +343,7 @@ void chord(float root, int n) {
 
 void growl(int i, float tone) {
     vec3 to = entity[i].xyz + vec3(0, stat(i, 1) * 0.8, 0) - eye;
-    float d = length(to), wall = field[cellOf(entity[i].xyz)] > d * 1.5 + 2.0 && field[cellOf(entity[i].xyz)] < 1e8 ? 0.4 : 1.0, clear = (0.7 + 0.3 * dot(to, aim) / d) * wall * 11.0 / (12.0 + d);
+    float d = length(to), f = field[cellOf(entity[i].xyz)], wall = f > d * 1.5 + 2.0 && f < 1e8 ? 0.4 : 1.0, clear = (0.7 + 0.3 * dot(to, aim) / d) * wall * 11.0 / (12.0 + d);
     playAt((monster[i].x > 3.0 ? 14.0 : 7.0 + monster[i].x) - clear, 12.0 * log2(sqrt(tone) * (0.9 + rnd() * 0.2)), 20.0 / (8.0 + d) * wall, entity[i].xyz);
 }
 
@@ -408,8 +403,7 @@ bool move(inout vec3 p, inout vec3 v, vec3 h, float dt, bool climb) {
 }
 
 void emit(float what, vec3 at, vec3 v, float duration) {
-    int range = what < 3.0 ? 0 : what < 6.0 ? 1 : 2;
-    int e = int[](16, 40, 104)[range] + int(cursor[range]++) % int[](24, 64, 8)[range];
+    int range = what < 3.0 ? 0 : what < 6.0 ? 1 : 2, e = int[](16, 40, 104)[range] + int(cursor[range]++) % int[](24, 64, 8)[range];
     entity[e] = vec4(at, what);
     motion[e] = vec4(v, duration);
 }
@@ -478,9 +472,8 @@ void killMonster(int i) {
     emit(20, at, vec3(0), 0.6);
     shake += 0.3;
     if (monster[i].x == 1.0) emit(1, at, vec3(0), 0.0);
-    if (hunter(i)) playNote(3.0, -12.0, 1.0);
+    if (hunter(i) || monster[i].x > 3.0) playNote(3.0, -12.0, 1.0);
     if (monster[i].x > 3.0) {
-        playNote(3.0, -12.0, 1.0);
         playNote(13.0, 12.0, 1.0);
         hitstop = 0.25;
         exitPos.y = 0.0;
@@ -529,11 +522,11 @@ void spawn(vec3 at, float type, bool ceiling) {
 }
 
 float guardType() {
-    return float(1240 >> int(twist()) * 2 & 3);
+    return 1240 >> int(twist()) * 2 & 3;
 }
 
 float pickType() {
-    return float(int(rnd() * min(level + 1.0, 4.0)));
+    return int(rnd() * min(level + 1.0, 4.0));
 }
 
 void spawnLevel() {
@@ -544,13 +537,12 @@ void spawnLevel() {
 #ifdef BOT
     for (int r = 0; r < 16 + dynamicZero; r++) links[r] = vec4(0);
 #endif
+    float loops = float[](0.25, 0.1, 0.55, 0.0, 0.35, 0.25)[int(stage)];
     for (int r = 0; r < 16 + dynamicZero; r++) {
         int x = r % 4, z = r / 4;
         threat[r] = 0.0;
         kinds[r] = int(mod(step(0.5, hash(vec2(r, level))) * (boss ? 2.0 : 1.0) + level * 2.0, 5.0));
-        bool east = x < 3 && (z == 3 || rnd() < 0.5);
-        float loops = float[](0.25, 0.1, 0.55, 0.0, 0.35, 0.25)[int(stage)];
-        bool north = z < 3 && (!east || rnd() < loops);
+        bool east = x < 3 && (z == 3 || rnd() < 0.5), north = z < 3 && (!east || rnd() < loops);
         east = east || x < 3 && rnd() < loops;
         doors[r] = int(east) + int(north) * 2;
     }
@@ -576,7 +568,8 @@ void spawnLevel() {
         int x = r % 4, z = r / 4;
         vec3 c = roomCenter(r);
         for (int d = 0; d < 4 + dynamicZero; d++) {
-            ivec2 o = ivec2[](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1))[d];
+            int s = 1 - d % 2 * 2;
+            ivec2 o = d < 2 ? ivec2(s, 0) : ivec2(0, s);
             int n = r + o.x + o.y * 4;
             if (any(greaterThan(uvec2(x + o.x, z + o.y), uvec2(3)))) continue;
             int door = doors[d % 2 > 0 ? n : r] >> d / 2;
@@ -608,7 +601,7 @@ void spawnLevel() {
             addBox(c * 0.6 + vec3(16, 4, 16), vec3(0.8, 4, 0.8), 17.0);
             continue;
         }
-        float style = float(kinds[r]);
+        float style = kinds[r];
         for (int k = 0; k < 4 + dynamicZero; k++) {
             if (rnd() < 0.3) continue;
             float s = 0.5 + floor(rnd() * 4.0) * 0.25;
@@ -676,8 +669,8 @@ void spawnLevel() {
     ammo = ammoStart;
     arsenal = arsenalStart;
     upgrades = upgradesStart;
-    weapon = min(weapon, arsenal);
-    yaw = pitch = dead = exitOpen = fade = intensity = hurt = shake = fuses = banner = frenzy = spawnClock = hitstop = alarm = whirl = notice = pulse = guardsDown = 0.0;
+    shown = weapon = min(weapon, arsenal);
+    yaw = pitch = dead = exitOpen = fade = intensity = hurt = shake = fuses = banner = frenzy = spawnClock = hitstop = alarm = whirl = notice = pulse = guardsDown = dashCooldown = fireCooldown = swap = 0.0;
     bfsCell = -1.0;
     playNote(19.0, 74.4, 1.5);
     playNote(15.0, 86.4, 1.0);
@@ -693,11 +686,12 @@ void sequence(int count) {
         float root = barRoot(beat), hook = float[](0, -99, 3, 1, 0, -99, -5, -99, -4, -5, -99, 3, 1, -99, 0, -99)[(step / 2 + bar % 2 * 8 + int(level) * 6) % 16];
         if (abs(mod(sampleClock - voice[old].w, 16758000.0) - 1.2e7) < 4e6) voice[old].z = 0.0;
         if (k > 0.15 && step % (k > 0.4 ? 4 : 8) < 2) playNote(14.0, 0.0, k * (1.0 - step % 2 * 0.4) * max(0.0, 1.0 - drums * 4.6));
-        if (alarm > 6.0 && step % 4 == 0) playNote(20.0, 110.4 + root + float(step % 8 / 4 * 5), (alarm - 6.0) * 0.1);
+        if (alarm > 6.0 && step % 4 == 0) playNote(20.0, 110.4 + root + step % 8 / 4 * 5, (alarm - 6.0) * 0.1);
         bool kickHit = (kicks >> step & 1) > 0 && beat % 128 < 112;
         if (drums > 0.0) {
             if (kickHit) playNote(16.0, 0.0, drums);
-            if (step % (8 << odd) == 4 << odd || bar == 3 && step > 12) playNote(17.0, 0.0, drums * (step % (8 << odd) == 4 << odd ? 1.0 : 0.5));
+            bool s = step % (8 << odd) == 4 << odd;
+            if (s || bar == 3 && step > 12) playNote(17.0, 0.0, drums * (s ? 1.0 : 0.5));
             if (step % 2 == 0) playNote(19.0, 74.4 + root + float[](0, 0, 1, 0, 3, 0, 1, -2, 0, 12, 0, 10, 8, 3, -5, -2)[(step / 2 + int(level) * 6) % 8 + phrase], drums * (kickHit ? 0.25 : 1.0));
             if ((k > 0.55 || rage > 0.0) && (step % 2 == 1 || rage > 0.66 || frenzy > 1.0 || alarm > 0.0)) playNote(18.0, 0.0, drums * (step % 4 == 3 ? 1.0 : 0.5));
             if ((k > 0.6 || rage > 0.0) && (phrase > 0 || k > 0.8 && bar < 2) && step % (2 << odd) == 0 && hook > -50.0) playNote(20.0, 110.4 + root + hook, drums * 0.8);
@@ -707,18 +701,21 @@ void sequence(int count) {
     for (int j = max(cueCount - 32, 0); j < cueCount; j++) {
         vec4 c = cues[j & 31];
         if (c.z == 0.0) continue;
-        c.z *= 20.0 / (20.0 + length(cueFrom[j & 31]));
+        vec2 f = cueFrom[j & 31];
+        float d = length(f);
+        c.z *= 20.0 / (20.0 + d);
         int b = abs(c.x - 17.0) > 3.0 ? 8 : 0, v = b;
         float oldest = -1e9;
         for (int i = b; i < b + 8 + dynamicZero; i++) {
-            float age = voice[i].z == 0.0 ? 1e9 : abs(mod(c.w - voice[i].w + 8e6, 16758000.0) - 8e6) / sounds[int(voice[i].x) * 8 + 3] - log(voice[i].z * sounds[int(voice[i].x) * 8 + 4]) * 44100.0;
+            int p = int(voice[i].x) * 8;
+            float age = voice[i].z == 0.0 ? 1e9 : abs(mod(c.w - voice[i].w + 8e6, 16758000.0) - 8e6) / sounds[p + 3] - log(voice[i].z * sounds[p + 4]) * 44100.0;
             if (age > oldest) {
                 oldest = age;
                 v = i;
             }
         }
         voice[v] = c;
-        pan[v] = (rot(yaw) * cueFrom[j & 31]).x / (length(cueFrom[j & 31]) + 1.0) + float(c.x == 15.0 || c.x == 18.0) * sin(c.w) * 0.3;
+        pan[v] = (rot(yaw) * f).x / (d + 1.0) + float(c.x == 15.0 || c.x == 18.0) * sin(c.w * 2.5e-4) * 0.3;
     }
     sampleClock = mod(sampleClock + count, 16758000.0);
     droneClock = mod(droneClock + count * exp2(fuses / 12.0), 882000.0);
@@ -726,18 +723,18 @@ void sequence(int count) {
 
 void render(int n, int count) {
     if (n < count) {
-        float k = intensity, w = mod(sampleClock + (n - count), 882000.0), t = (droneClock + (n - count) * exp2(fuses / 12.0)) * 1.425e-4, duck = 0.0;
-        vec2 music = vec2(0), s = vec2(0) + (sin(t * 36.7) * 0.6 + sin(t * vec2(73.4, 73.85)) * 1.4 + sin(t * 110.1) * 0.5 + sin(t * 174.6) * 0.3 + (sin(t * 587.3) + sin(t * vec2(587.9, 586.6))) * 0.2 * (1.0 - k)) * 0.024 * (1.2 - k * 0.6) * (1.0 + sin(t * 0.1) * 0.4) + (sin(t * 220.0) + sin(t * 330.5) * 0.6 + sin(t * 441.0) * 0.3) * (0.6 + 0.4 * sin(t * 9.0)) * hum * 0.08;
+        float k = intensity, w = sampleClock + n - count, t = (droneClock + (n - count) * exp2(fuses / 12.0)) * 1.425e-4, duck = 0.0;
+        vec2 music = vec2(0), s = (sin(t * 36.7) * 0.6 + sin(t * vec2(73.4, 73.85)) * 1.4 + sin(t * 110.1) * 0.5 + sin(t * 174.6) * 0.3 + (sin(t * 587.3) + sin(t * vec2(587.9, 586.6))) * 0.2 * (1.0 - k)) * 0.024 * (1.2 - k * 0.6) * (1.0 + sin(t * 0.1) * 0.4) + (sin(t * 220.0) + sin(t * 330.5) * 0.6 + sin(t * 441.0) * 0.3) * (0.6 + 0.4 * sin(t * 9.0)) * hum * 0.08;
         for (int j = 0; j < 16 + dynamicZero; j++) {
             vec4 v = voice[j];
             int p = int(v.x) * 8;
-            float m = mod(sampleClock + (n - count) - v.w, 16758000.0), span = sounds[p + 3] * 44100.0, g = exp(-m / span), u = m * sounds[p + 5] * v.y + fract(v.w * 0.0137) * 1e4, x = 0.0;
+            float m = mod(w - v.w, 16758000.0), span = sounds[p + 3] * 44100.0, g = exp(-m / span), u = m * sounds[p + 5] * v.y + fract(v.w * 0.0137) * 1e4, x = 0.0;
             if (v.z == 0.0 || g < 1e-3) continue;
             float f = v.y * (sounds[p + 1] + (sounds[p] - sounds[p + 1]) * g), z = v.y * 1.425e-4 * (sounds[p + 1] * m + (sounds[p] - sounds[p + 1]) * (1.0 - g) * span), hiss = (mix(noise(u), noise(u + 1.0), fract(u)) * 2.0 - 1.0) * sqrt(sounds[p + 5]) * sounds[p + 2];
             bool voiced = sounds[p + 6] > 50.0;
             if (voiced) {
                 float a = m * 0.0005 + v.y * 999.0;
-                z += (mix(noise(a), noise(a + 1.0), fract(a)) * 3.0 + sin(m * 0.0007 + v.y * 999.0)) * f * 0.006;
+                z += (mix(noise(a), noise(a + 1.0), fract(a)) * 3.0 + sin(a + m * 0.0002)) * f * 0.006;
                 float c = 1.0 - fract(v.x);
                 for (int h = 1; h < 40 + dynamicZero && h * f < 400.0 + 4600.0 * c; h++) {
                     vec2 d = (h * f / vec2(sounds[p + 6], sounds[p + 7]) / (0.75 + 0.35 * g) - 1.0) * vec2(2.5, 3);
@@ -921,6 +918,13 @@ void main() {
         render(int(gl_GlobalInvocationID.x), int(screen.x));
         return;
     }
+    int here = cellOf(player);
+    if (bfsCell != here) {
+        for (int c = int(gl_LocalInvocationIndex); c < 6400 + dynamicZero; c += 64)
+            if (field[c] < 1e8) field[c] = 999.0;
+        memoryBarrier();
+        barrier();
+    }
     if (gl_LocalInvocationIndex > 0u) return;
     if (level == 0.0 || fade < 0.0) {
         if (level == 0.0) {
@@ -933,6 +937,7 @@ void main() {
 #endif
         }
         spawnLevel();
+        here = cellOf(player);
     }
 #ifdef BOT
     bot();
@@ -983,9 +988,8 @@ void main() {
             if ((k & 128 << w) > 0 && w <= arsenal) weapon = w;
         int wheel = (k >> 13 & 1) - (k >> 14 & 1) + int(arsenal) + 1;
         for (int t = 0; t < 5 + dynamicZero; t++)
-            if (t < 1 || weapon > 0.0 && ammo[int(weapon)] < 1.0) weapon = t > 3 ? 0.0 : float((int(weapon) + wheel) % (int(arsenal) + 1));
-        vec3 forward = vec3(sin(yaw), 0, cos(yaw));
-        vec3 wish = forward * ((k & 1) - (k >> 1 & 1)) + vec3(forward.z, 0, -forward.x) * ((k >> 3 & 1) - (k >> 2 & 1));
+            if (t < 1 || weapon > 0.0 && ammo[int(weapon)] < 1.0) weapon = t > 3 ? 0 : (int(weapon) + wheel) % (int(arsenal) + 1);
+        vec3 forward = vec3(sin(yaw), 0, cos(yaw)), wish = forward * ((k & 1) - (k >> 1 & 1)) + vec3(forward.z, 0, -forward.x) * ((k >> 3 & 1) - (k >> 2 & 1));
         if (dot(wish, wish) > 0.0) wish = normalize(wish) * 8.5;
         if ((k & 64) > 0 && dashCooldown <= 0.0 && dot(wish, wish) > 0.0) {
             velocity += wish * 2.5;
@@ -1003,8 +1007,9 @@ void main() {
 
         fireCooldown = max(fireCooldown - dt, -0.05);
         notice -= dt;
-        float u = upgrades[int(weapon)];
-        bool alt = (k & 4096) > 0 && u > 0.0, wave = alt && weapon == 3.0;
+        int g = int(weapon);
+        float u = upgrades[g];
+        bool alt = (k & 4096) > 0 && u > 0.0 && (weapon != 3.0 || ammo.w > 9.0), wave = alt && weapon == 3.0;
         pulse = max(pulse - dt * 2.0, 0.0);
         whirl = clamp(whirl + dt * ((k & 4128) > 0 ? 3.0 : -1.5), 0.0, 1.0);
         spin += whirl * dt * 40.0;
@@ -1012,8 +1017,8 @@ void main() {
         if (swap == 1.0) shown = weapon;
         if (((k & 32) > 0 || alt) && fireCooldown <= 0.0 && weapon == shown && (weapon != 1.0 || whirl > 0.4 || u > 1.0)) {
             float shots = alt && weapon == 0.0 ? 2.0 : 1.0, fan = alt && weapon == 2.0 ? min(ammo.z, 3.0) : float(!wave);
-            ammo[int(weapon)] -= wave ? min(ammo.w, 10.0) : fan;
-            int w = int(weapon) * 7;
+            ammo[g] -= wave ? 10.0 : fan;
+            int w = g * 7;
             fireCooldown += weaponStats[w] * (1.0 - frenzy * 0.12) * (weapon == 1.0 ? (u > 1.0 ? 0.67 : 2.0 - whirl) / (alt ? 2.0 : 1.0) : weapon == 3.0 ? (wave ? 8.0 : 1.0) * (u > 1.0 ? 0.5 : 1.0) : shots * 0.8 + 0.2);
             firing = 1.0;
             flash = weapon == 1.0 ? 0.5 + rnd() * 0.3 : weapon > 2.0 ? 0.3 : 1.0;
@@ -1034,16 +1039,15 @@ void main() {
                 vec3 dir = normalize(aim + spread(weaponStats[w + 2] * (2.0 - frenzy * 0.3) * (shots * 0.5 + 0.5) * (weapon == 1.0 && alt ? 2.0 : weapon == 0.0 && u > 1.0 ? 0.6 : 1.0)));
                 float far = traceScene(eye, dir, 200.0), best = far, hit = 0.0;
                 int target = -1, struck = 0;
+                vec3 a = 1.0 / dir;
                 for (int i = 0; i < 16 + dynamicZero; i++) {
                     if (monster[i].x < 0.0 || monster[i].w > 0.0) continue;
-                    vec3 a = (entity[i].xyz - monsterHalf(i) - eye) / dir, b = (entity[i].xyz + monsterHalf(i) - eye) / dir, lo = min(a, b), hi = max(a, b);
+                    vec3 b = (entity[i].xyz - eye) * a, q = abs(a) * monsterHalf(i), lo = b - q, hi = b + q;
                     float t = max(max(lo.x, lo.y), lo.z), exit = min(min(hi.x, hi.y), hi.z);
-                    t = t < exit && exit > 0.0 ? max(t, 0.0) : 1e9;
-                    if (t < far) {
+                    if (t < exit && exit > 0.0 && (t = max(t, 0.0)) < best) {
                         float d = 1.0;
                         for (int k = 0; k < 24 + dynamicZero && t < exit && d > 0.02; k++) t += d = monsterAt(eye + dir * t, i);
-                        if (d > 0.02 || t > far) continue;
-                        if (t < best) {
+                        if (d <= 0.02 && t < best) {
                             best = t;
                             target = i;
                             hit = weaponStats[w + 3] * (part == 1 ? 2.5 : 1.0);
@@ -1064,10 +1068,8 @@ void main() {
         }
     }
 
-    int head = 0, tail = 0, here = cellOf(player);
+    int head = 0, tail = 0;
     if (bfsCell != here) {
-        for (int c = 0; c < 6400 + dynamicZero; c++)
-            if (field[c] < 1e8) field[c] = 999.0;
         for (int ring = 1; ring < 3 + dynamicZero && tail == 0; ring++)
             for (int d = 0; d < 25 + dynamicZero; d++) {
                 int c = here + (d / 5 - 2) * 80 + d % 5 - 2;
@@ -1130,9 +1132,7 @@ void main() {
         }
         if (rnd() < dt * (type == 1.0 ? 0.45 : 0.3)) growl(i, 1.0);
         threat[roomOf(p)] = 1.0;
-        if (type > 3.0 && left < 15.0 && rnd() < dt * 0.1 * (fuses + 1.0)) {
-            spawn(vec3(p.x, 0, p.z) + spread(5.0) * vec3(1, 0, 1), rage > 0.5 ? 1.0 : 0.0, false);
-        }
+        if (type > 3.0 && left < 15.0 && rnd() < dt * 0.1 * (fuses + 1.0)) spawn(vec3(p.x, 0, p.z) + spread(5.0) * vec3(1, 0, 1), rage > 0.5 ? 1.0 : 0.0, false);
         int c = cellOf(p);
         float f = min(field[c], 998.0);
         chase = max(chase, 3.0 / max(dist, field[c] > 1e8 ? 0.0 : f));
@@ -1142,7 +1142,7 @@ void main() {
             float weave = sin(time * 2.7 + i * 2.3) * (dot(aim, dir) < -0.993 ? 0.9 : 0.45);
             want.xz *= rot(type == 2.0 ? (i % 2 == 0 ? 1.0 : -1.0) * (dist < 9.0 ? 2.3 : 1.2) : weave);
         }
-        want = want / (length(want.xz) + 1e-4) * stat(i, 3) * (0.95 + min(level, 8.0) * 0.05 + float(alarm > 0.0) * 0.4 - float(armored(i)) * 0.35) * (reach > stat(i, 7) * 0.6 && motion[i].w < 0.0 ? 1.0 : 0.0);
+        want = want / (length(want.xz) + 1e-4) * stat(i, 3) * (0.95 + min(level, 8.0) * 0.05 + float(alarm > 0.0) * 0.4) * (armored(i) ? 0.65 : 1.0) * (reach > stat(i, 7) * 0.6 && motion[i].w < 0.0 ? 1.0 : 0.0);
         v.xz += (want.xz - v.xz) * min(dt * (brain[i].z > 0.0 ? 1.0 : 6.0), 1.0);
         if (charge[i].w > 0.0) {
             v.xz = motion[i].w > 0.0 ? vec2(0) : charge[i].xz;
@@ -1248,9 +1248,9 @@ void main() {
                     shake += 0.6 * what;
                     float blast = what == 1.0 && upgrades.z > 1.0 ? 10.0 : 5.0 * what, scale = what * what;
                     burst(at, blast, 40.0 * scale, 25.0 * scale, what - 1.0);
-                    vec3 to = player - at;
-                    float d = length(to) + 1e-4;
                     if (what == 1.0) {
+                        vec3 to = player - at;
+                        float d = length(to) + 1e-4;
                         if (d < 4.0) {
                             velocity += to / d * (14.0 - d * 2.0);
                             hurtPlayer(min(0.3 - d * 0.07, 0.1));
@@ -1286,7 +1286,7 @@ void main() {
                 fuses++;
                 if (alarm > 0.0) health = min(1.0, health + 0.15);
                 alarm = 10.0;
-                alarmRoom = float(roomOf(player));
+                alarmRoom = roomOf(player);
                 shake += 1.0;
                 playNote(3.0, -7.0, 1.0);
                 for (int m = 0; m < 16 + dynamicZero; m++)
@@ -1297,7 +1297,7 @@ void main() {
                 if (q.w == 4.0) {
                     int g = upgradeTarget();
                     upgrades[g] = min(upgrades[g] + 1.0, 2.0);
-                    weapon = boosted = float(g);
+                    weapon = boosted = g;
                     notice = 3.0;
                 }
                 if (q.w == 7.0) health = min(1.0, health + 0.3);
@@ -1315,14 +1315,14 @@ void main() {
         spawnClock = 0.0;
         bool ambush = exitOpen == 0.0 && (twist() == 2.0 || fuses > 0.0 && rnd() < 0.4) && alarm < 10.0;
         float before = left, cap = min(8.0 + level, 14.0) - float(ambush) * 3.0;
+        int r = roomOf(player);
         for (int t = 0; t < 16 + dynamicZero; t++) {
-            vec3 at = clamp(player * vec3(1, 0, 1) + vec3(rnd() - 0.5, 0, rnd() - 0.5) * 60.0, 2.0, 78.0) * vec3(1, 0, 1);
-            vec3 sight = at + vec3(0, ambush ? 7.0 : 1.0, 0) - eye;
+            vec3 at = clamp(player * vec3(1, 0, 1) + vec3(rnd() - 0.5, 0, rnd() - 0.5) * 60.0, 2.0, 78.0) * vec3(1, 0, 1), sight = at + vec3(0, ambush ? 7.0 : 1.0, 0) - eye;
             float path = field[cellOf(at)];
-            if (left < cap && path > 14.0 && path < 36.0 && roomOf(at) != roomOf(player) && ((t > 3 || alarm == 10.0) && !ambush || dot(at - player, aim) > 0.0 == ambush) && traceScene(eye, normalize(sight), length(sight)) < length(sight) - 1.0) {
+            if (left < cap && path > 14.0 && path < 36.0 && roomOf(at) != r && ((t > 3 || alarm == 10.0) && !ambush || dot(at - player, aim) > 0.0 == ambush) && traceScene(eye, normalize(sight), length(sight)) < length(sight) - 1.0) {
                 for (int n = 0; n <= int(min(fuses, 2.0)) + int(fuses > 1.0 && exitOpen == 0.0) + int(twist() == 4.0) + dynamicZero; n++) {
                     vec3 q = at + spread(3.0) * vec3(1, 0, 1);
-                    if (left < cap && roomOf(q) != roomOf(player)) spawn(q, n > 0 ? float(guardType() == 1.0 && !ambush) : ambush ? min(pickType(), 1.0) : rnd() < 0.5 ? guardType() : pickType(), ambush);
+                    if (left < cap && roomOf(q) != r) spawn(q, n > 0 ? float(guardType() == 1.0 && !ambush) : ambush ? min(pickType(), 1.0) : rnd() < 0.5 ? guardType() : pickType(), ambush);
                 }
                 if (left > before && !ambush) {
                     spawnClock = -1.2;
@@ -1398,7 +1398,7 @@ float print(vec2 at, float size, int msg, float value) {
         float d = float[](600, 60, 10, 1, 100, 10)[code - 36];
         code = code > 39 && value < d ? 0 : int(value / d) % int[](10, 10, 6, 10, 10, 10)[code - 36] + 1;
     }
-    return float(glyphs[code] >> y * 3 + x & 1);
+    return glyphs[code] >> y * 3 + x & 1;
 }
 
 vec2 relief(vec2 st, vec2 size) {
@@ -1415,8 +1415,8 @@ vec2 hull(vec3 ro, vec3 rd, int i) {
 }
 
 float shadow(vec3 p, vec3 n, vec3 rd, float far) {
-    if (traceScene(p + n * 0.01, rd, far) + 0.01 < far) return 0.0;
-    vec3 ro = p + n * 0.03;
+    vec3 ro = p + n * 0.02;
+    if (traceScene(ro, rd, far) + 0.01 < far) return 0.0;
     float lit = 1.0;
     int steps = 0;
     for (int i = 0; i < 16 + dynamicZero && steps < 16; i++) {
@@ -1434,15 +1434,16 @@ float shadow(vec3 p, vec3 n, vec3 rd, float far) {
 
 vec3 lampAt(vec2 cell) {
     int cellIndex = int(cell.y * 4.0 + cell.x);
-    if (alarm > 0.0 && float(cellIndex) == alarmRoom) return vec3(1.3, 0.05, 0.02);
+    if (alarm > 0.0 && cellIndex == alarmRoom) return vec3(1.3, 0.05, 0.02);
     float h = hash(cell + level * 7.0), dark = max(cell.x + cell.y > 0.0 ? (twist() == 4.0 ? 1.0 : 0.6) - fuses * 0.2 + float(alarm > 0.0 && twist() == 1.0) : 0.0, step(hash(vec2(floor(time * 7.0), 3)), max(max(monster[15].w == 0.0 ? bossRage() * 1.5 - 0.5 : 0.0, -spawnClock * 0.6), threat[cellIndex] * 0.3 * float(cell != floor(clamp(eye.xz, 0.1, 79.9) / 20.0)))));
     return (h < dark ? vec3(0) : vec3[](vec3(0.55, 0.8, 0.7), vec3(0.7, 0.45, 0.15), vec3(0.7, 0.06, 0.02), vec3(0.4, 0.5, 0.2), vec3(0.3, 0.55, 0.6))[kinds[cellIndex]] * (0.7 + 0.6 * fract(h * 13.0))) * (1.0 - threat[cellIndex] * 0.4) * (h > 0.7 ? step(0.0, sin(time * (4.0 + h * 9.0)) + sin(time * 17.0) + 0.6) : 1.0) * (1.0 + 0.3 * cos(level * 2.4 + vec3(0, 2, 4)));
 }
 
 vec3 glow(float t, vec3 at, vec3 color, float size) {
     vec3 v = at - eye;
-    v -= ray * clamp(dot(v, ray), 0.0, t);
-    return color * size / (dot(v, v) + size * 0.3) * smoothstep(0.0, 1.0, dot(at - eye, ray));
+    float d = dot(v, ray);
+    v -= ray * clamp(d, 0.0, t);
+    return color * size / (dot(v, v) + size * 0.3) * smoothstep(0.0, 1.0, d);
 }
 
 void main() {
@@ -1455,19 +1456,18 @@ void main() {
     vec3 n = normal;
     int mat = material, hit = -1, steps = 0, solid = hitBox;
     for (int i = 0; i < 16 + dynamicZero; i++) {
-        if (monster[i].x < 0.0) continue;
-        vec2 r = hull(eye, ray, i);
-        for (float s = max(r.x, 0.0); s < min(r.y, t) && steps++ < 96;) {
-            float d = monsterAt(eye + ray * s, i);
-            if (d < 0.002 * s) {
-                t = s;
-                hit = i;
-                break;
+        if (monster[i].x >= 0.0) {
+            vec2 r = hull(eye, ray, i);
+            for (float s = max(r.x, 0.0); s < min(r.y, t) && steps++ < 96;) {
+                float d = monsterAt(eye + ray * s, i);
+                if (d < 0.002 * s) {
+                    t = s;
+                    hit = i;
+                    break;
+                }
+                s += d * 0.8;
             }
-            s += d * 0.8;
         }
-    }
-    for (int i = 0; i < 16 + dynamicZero; i++) {
         vec4 q = pickup[i];
         vec3 k = abs(1.0 / ray) * (q.w == 2.0 ? vec3(0.35, 0.25, 0.25) : vec3(0.12, 0.25, 0.12)), c = (q.xyz + vec3(0, q.w == 2.0 ? 0.25 : 0.9 + sin(time * 2.0 + i) * 0.1, 0) - eye) / ray, t1 = c - k, t2 = c + k;
         float near = max(max(t1.x, t1.y), t1.z);
@@ -1487,25 +1487,24 @@ void main() {
         if (q.w == 4.0) sparks += glow(t, q.xyz, vec3(1, 0.7, 0.3), 0.0004);
         else if (q.w > 0.0) {
             stain += smoothstep(0.3, 0.1, length(q.xyz - p) + edge);
-            if (k > 0.0 && b < 0.0 && -b - sqrt(k) < t) {
-                drop = 0.5 + 0.5 * normalize(oc + ray * (-b - sqrt(k))).y;
-                sparks = vec3(0);
-            }
+            float d = -b - sqrt(k);
+            if (k > 0.0 && b < 0.0 && d < t) drop = 0.5 + 0.5 * normalize(oc + ray * d).y, sparks = vec3(0);
         }
     }
     vec2 cell = floor(clamp(p.xz, 0.1, 79.9) / 20.0);
     int cellIndex = int(cell.y * 4.0 + cell.x);
-    float grime = 0.0, wet = 0.0;
-    float shine = 0.15;
+    float grime = 0.0, wet = 0.0, shine = 0.15;
     if (hit >= 0) {
         vec2 e = vec2(0.005, -0.005);
         n = normalize(e.xyy * monsterAt(p + e.xyy, hit) + e.yyx * monsterAt(p + e.yyx, hit) + e.yxy * monsterAt(p + e.yxy, hit) + e.xxx * monsterAt(p + e.xxx, hit));
         n = normalize(n + vec3(ripple(p * 23.0), ripple(p.zxy * 23.0), 0) * 0.3);
         vec4 info = monster[hit];
-        float vein = smoothstep(0.035, 0.0, abs(ripple(p * (hunter(hit) ? 9.0 : 4.0) + ripple(p * 9.0) * 0.4))), cut = 0.92 - (1.0 - brain[hit].x / stat(hit, 2)) * 0.6, gash = smoothstep(cut, cut + 0.03, ripple(p * vec3(9, 2.5, 9) + float(hit)));
-        albedo = (hunter(hit) ? vec3(0.05, 0.045, 0.04) : vec3[](vec3(0.12, 0.07, 0.06), vec3(0.17, 0.16, 0.15), vec3(0.06, 0.03, 0.07), vec3(0.07, 0.045, 0.035), vec3(0.16, 0.04, 0.04))[int(info.x)]) * (0.7 + 0.3 * ripple(p * 11.0)) * (1.0 - 0.7 * vein);
+        bool h = hunter(hit);
+        float vein = smoothstep(0.035, 0.0, abs(ripple(p * (h ? 9.0 : 4.0) + ripple(p * 9.0) * 0.4))), cut = 0.92 - (1.0 - brain[hit].x / stat(hit, 2)) * 0.6, gash = smoothstep(cut, cut + 0.03, ripple(p * vec3(9, 2.5, 9) + float(hit)));
+        albedo = (h ? vec3(0.05, 0.045, 0.04) : vec3[](vec3(0.12, 0.07, 0.06), vec3(0.17, 0.16, 0.15), vec3(0.06, 0.03, 0.07), vec3(0.07, 0.045, 0.035), vec3(0.16, 0.04, 0.04))[int(info.x)]) * (0.7 + 0.3 * ripple(p * 11.0)) * (1.0 - 0.7 * vein);
         glint = armored(hit) ? vec3(1) : vec3[](vec3(1, 0.12, 0.05), vec3(1, 0.45, 0.05), vec3(0.7, 1, 0.2), vec3(1, 0.12, 0.05), vec3(0.7, 1, 0.2))[int(info.x)];
-        emission = float(part == 1) * 5.0 * pow(max(-dot(n, ray), 0.0), 60.0) * glint + vein * max(info.z * info.z, float(hunter(hit)) * (fuses > 2.0 ? 0.6 : 0.25)) * 0.25 * max(-dot(n, ray), 0.0) * vec3(1, 0.12, 0.05);
+        float v = max(-dot(n, ray), 0.0);
+        emission = float(part == 1) * 5.0 * pow(v, 60.0) * glint + vein * max(info.z * info.z, float(h) * (fuses > 2.0 ? 0.6 : 0.25)) * 0.25 * v * vec3(1, 0.12, 0.05);
         shine = part == 1 ? 0.0 : max(0.9 * smoothstep(0.3, 0.7, ripple(p * 17.0)), gash);
         albedo = part > 1 ? vec3(0.3, 0.25, 0.15) : mix(albedo, vec3(0.05, 0.0, 0.0), gash) * float(part < 1);
         albedo *= 0.25 + 0.75 * clamp(monsterAt(p + n * 0.15, hit) / 0.15, 0.0, 1.0);
@@ -1564,8 +1563,7 @@ void main() {
         if (mat == 10) emission = vec3(0.3, 0.6, 1.5) * (1.2 + sin(time * 6.0) * 0.4) * (0.15 + 0.85 * step(0.3, fract(p.y * 4.0 - time))) * (0.6 + 0.4 * abs(n.x));
         if (mat == 11) albedo = mix(vec3(0.05, 0.06, 0.03), vec3(0.3, 0.24, 0.03), step(abs(fract(p.y * 4.0 + 0.5) - 0.5), 0.1) * step(abs(n.y), 0.5));
         if (mat == 12 || mat == 13 || mat == 16) emission = mat > 15 ? vec3(0.3, 1.5, 0.4) : mat > 12 ? vec3(1.5, 0.1, 0.1) : vec3(1.5, 0.6, 0.1);
-        float column = hash(vec2(floor(st.x * 3.0), level)), top = 2.0 + fract(column * 7.0) * 4.0, u = fract(st.x * 3.0) - 0.5;
-        float blood = smoothstep(0.6, 0.65, ripple(p * 0.6) + edge) * (1.0 - smoothstep(0.0, 1.0, p.y)) + step(abs(n.y), 0.5) * float(mat == 0) * step(0.85, column) * max(smoothstep(0.25, 0.12, abs(u + sin(p.y * 6.0) * 0.04)) * smoothstep(top - 2.5 * fract(column * 13.0) - 0.3, top, p.y) * step(p.y, top), smoothstep(0.35, 0.2, length(vec2(u, (p.y - top) * 2.0))));
+        float column = hash(vec2(floor(st.x * 3.0), level)), top = 2.0 + fract(column * 7.0) * 4.0, u = fract(st.x * 3.0) - 0.5, blood = smoothstep(0.6, 0.65, ripple(p * 0.6) + edge) * (1.0 - smoothstep(0.0, 1.0, p.y)) + step(abs(n.y), 0.5) * float(mat == 0) * step(0.85, column) * max(smoothstep(0.25, 0.12, abs(u + sin(p.y * 6.0) * 0.04)) * smoothstep(top - 2.5 * fract(column * 13.0) - 0.3, top, p.y) * step(p.y, top), smoothstep(0.35, 0.2, length(vec2(u, (p.y - top) * 2.0))));
         blood = min(blood + stain, 1.0);
         shine = max(shine, blood);
         albedo *= 1.0 + ripple(p * 41.0) * ripple(p.zxy * 23.0) * 0.35 * smoothstep(4.0, 1.0, t);
@@ -1589,20 +1587,19 @@ void main() {
     tl /= tn;
     float on = step(max(max(0.3 - health, intensity * 0.35 - 0.1), -spawnClock * 0.35), hash(vec2(floor(time * 15.0)))), axis = -dot(tl, aim), core = (smoothstep(0.9, 0.96, axis) * 0.8 + smoothstep(0.975, 1.0, axis) * 0.8) * on, cone = core + smoothstep(0.45, 0.92, axis) * 0.3 * on, lit = cone;
     if (core > 0.01) lit -= core * (1.0 - shadow(p, n, tl, tn));
-    vec3 light = vec3(1, 0.88, 0.7) * (lit * min(0.3 + t, 2.0) / (1.0 + t * t * 0.015) + flash * 3.0 / (1.0 + t * t * 0.75) / (1.0 + t * t * 0.08));
-    vec3 col = albedo * light * max(dot(n, tl), 0.0) + light * shine * pow(max(dot(n, normalize(tl - ray)), 0.0), mat == 9 ? 160.0 : 40.0) * lit * 0.5;
+    vec3 light = vec3(1, 0.88, 0.7) * (lit * min(0.3 + t, 2.0) / (1.0 + t * t * 0.015) + flash * 3.0 / (1.0 + t * t * 0.75) / (1.0 + t * t * 0.08)), col = albedo * light * max(dot(n, tl), 0.0) + light * shine * pow(max(dot(n, normalize(tl - ray)), 0.0), mat == 9 ? 160.0 : 40.0) * lit * 0.5;
     if (mat == 9) col = col * (0.1 + 0.45 * pow(max(-dot(n, ray), 0.0), 2.0)) + albedo * light * vec3(0.6, 0.05, 0.03) * pow(max(1.0 - abs(dot(n, ray)), 0.0), 3.0) * 0.2;
     vec3 bounce = beamHit.xyz - p;
-    float bounceSq = dot(bounce, bounce), fill;
-    bounce *= inversesqrt(bounceSq);
-    fill = on * 0.3 * beamHit.w * max(dot(n, bounce), 0.0) * max(-dot(beamNormal.xyz, bounce), 0.0) / (1.0 + bounceSq * 0.08) * (mat == 9 ? 0.4 : 1.0);
-    if (fill > 0.004) fill *= shadow(p, n, bounce, sqrt(bounceSq) - 0.1);
+    float d = length(bounce);
+    bounce /= d;
+    float fill = on * 0.3 * beamHit.w * max(dot(n, bounce), 0.0) * max(-dot(beamNormal.xyz, bounce), 0.0) / (1.0 + d * d * 0.08) * (mat == 9 ? 0.4 : 1.0);
+    if (fill > 0.004) fill *= shadow(p, n, bounce, d - 0.1);
     col += albedo * vec3(1, 0.88, 0.7) * fill;
 
     vec3 lamp = vec3(cell * 20.0 + 10.0, 5.6).xzy, toLamp = lamp - p, lampColor = lampAt(cell), cellLamp = lampColor;
     float dl = length(toLamp);
     toLamp /= dl;
-    if (alarm > 0.0 && float(cellIndex) == alarmRoom) lampColor *= 0.25 + 3.0 * pow(0.5 + 0.5 * sin(atan(toLamp.z, toLamp.x) - time * 6.0), 8.0);
+    if (alarm > 0.0 && cellIndex == alarmRoom) lampColor *= 0.25 + 3.0 * pow(0.5 + 0.5 * sin(atan(toLamp.z, toLamp.x) - time * 6.0), 8.0);
     if (hit >= 0) col += vec3(0.25, 0.012, 0.004) * (armored(hit) ? 0.1 : monster[hit].x > 0.0 ? 0.5 : 1.0) * clamp(1.0 + monsterAt(p - n * 0.12, hit) / 0.12, 0.0, 1.0) * (light * 0.12 + lampColor * 0.2 / (1.0 + dl * dl * 0.05)) + (lampColor * 0.15 / (1.0 + dl * dl * 0.05) + glint * 0.04 * smoothstep(30.0, 2.0, t)) * pow(max(1.0 - abs(dot(n, ray)), 0.0), 4.0);
     if (mat == 14) emission += (lampColor + dot(lampColor, vec3(0.25))) * 3.5 * step(0.04, fract(atan(toLamp.z, toLamp.x) * 1.2732)) * step(n.y, -0.5) + vec3(0.6, 0.02, 0) * step(lampColor.r, 0.0) * step(0.97, fract(time * 0.3 + cell.x * 0.37));
     if (lampColor.r > 0.0 && dot(n, toLamp) > 0.0 && (toLamp.y > 0.35 || toLamp.y < 0.0)) col += lampColor * (albedo * 12.0 * dot(n, toLamp) * max(smoothstep(0.35, 0.9, toLamp.y) * 3.0, -0.3 * toLamp.y)) / (1.0 + dl * dl * 0.2) * (mat == 9 ? 0.3 : shadow(p, n, normalize(lamp - p + (vec3(hash(uv + fract(time)), 0.5, hash(uv.yx + fract(time))) - 0.5) * 0.8), dl - 0.5)) * smoothstep(-0.5, 2.0, min(w.x, w.z));
@@ -1620,10 +1617,7 @@ void main() {
     for (int i = 0; i < 16 + dynamicZero; i++) {
         vec3 l = entity[i].xyz + vec3(0, 0.5, 0) - p;
         if (monster[i].x >= 0.0 && monster[i].w == 0.0 && brain[i].w > 0.0 && charge[i].y == 0.0 && i != hit) col += albedo * (armored(i) ? vec3(0.35, 0.4, 0.5) : vec3(1, 0.08, 0.02)) * 4.0 * max(dot(n, normalize(l)), 0.0) / (1.0 + dot(l, l) * 3.0);
-    }
-    for (int i = 0; i < 3 + dynamicZero; i++) {
-        vec3 l = pickup[i].xyz + vec3(0, 0.9, 0) - p;
-        if (pickup[i].w > 0.0) col += albedo * vec3(0.3, 0.6, 1.5) * max(dot(n, normalize(l)), 0.0) / (0.3 + dot(l, l)) * 1.5;
+        if (i < 3 && pickup[i].w > 0.0) l = pickup[i].xyz + vec3(0, 0.9, 0) - p, col += albedo * vec3(0.3, 0.6, 1.5) * max(dot(n, normalize(l)), 0.0) / (0.3 + dot(l, l)) * 1.5;
     }
     float fog = 0.04 + mod(level, 3.0) * 0.03 + intensity * 0.03, jitter = hash(gl_FragCoord.xy + fract(time));
     vec3 haze = vec3(0);
@@ -1631,16 +1625,16 @@ void main() {
     vec3 homeLamp = lampAt(home);
     for (int j = 0; j < 2 + dynamicZero; j++) {
         vec2 qc = j == 0 ? home : cell;
-        vec3 lc = vec3(qc * 20.0 + 10.0, 5.6).xzy - eye, beam = (j == 0 ? homeLamp : cellLamp) * smoothstep(1.0, 4.0, length(lc.xz) + float(j) * 4.0);
+        vec3 lc = vec3(qc * 20.0 + 10.0, 5.6).xzy - eye, beam = (j == 0 ? homeLamp : cellLamp) * smoothstep(1.0, 4.0, length(lc.xz) + j * 4);
         float a = dot(ray.xz, ray.xz) + 1e-5, b = dot(lc.xz, ray.xz), h = b * b - a * (dot(lc.xz, lc.xz) - 16.0);
         if (j == 1 && qc == home || beam.r == 0.0 || h < 0.0) continue;
-        float s0 = max((b - sqrt(h)) / a, 0.0), ds = (min((b + sqrt(h)) / a, min(t, ray.y > 0.0 ? (5.6 - eye.y) / ray.y : t)) - s0) / 6.0;
-        for (int i = 0; i < 6 + dynamicZero && ds > 0.0; i++) {
-            float s = s0 + ds * (float(i) + jitter);
+        float s0 = max((b - sqrt(h)) / a, 0.0), ds = (min((b + sqrt(h)) / a, min(t, ray.y > 0.0 ? (5.6 - eye.y) / ray.y : t)) - s0) / 4.0;
+        for (int i = 0; i < 4 + dynamicZero && ds > 0.0; i++) {
+            float s = s0 + ds * (i + jitter);
             vec3 ql = lc - ray * s;
-            float d = length(ql);
+            float r = dot(ql.xz, ql.xz), d = length(ql);
             ql /= d;
-            float spot = smoothstep(16.0, 9.0, dot(ql.xz * d, ql.xz * d)) * smoothstep(0.82, 0.98, ql.y) * (0.35 + 0.65 * smoothstep(0.03, 0.12, abs(fract(atan(ql.z, ql.x) * 1.2732 + 0.44) - 0.5))) * 1.5 / (1.0 + d * d * 0.15) * smoothstep(1.0, 6.0, s);
+            float spot = smoothstep(16.0, 9.0, r) * smoothstep(0.82, 0.98, ql.y) * (0.35 + 0.65 * smoothstep(0.03, 0.12, abs(fract(atan(ql.z, ql.x) * 1.2732 + 0.44) - 0.5))) * 1.5 / (1.0 + d * d * 0.15) * smoothstep(1.0, 6.0, s);
             if (spot > 0.003) haze += beam * spot * step(d - 0.05, traceScene(eye + ray * s, ql, d)) * exp(-fog * s) * ds;
         }
     }
@@ -1649,8 +1643,10 @@ void main() {
     if (drop >= 0.0) col = vec3(0.08, 0, 0) * (cone + 0.05) * drop;
     col += sparks;
     for (int i = 0; i < 16 + dynamicZero; i++) {
-        vec4 q = pickup[i];
+        vec4 q = pickup[i], m = monsterFrame(i), info = monster[i];
         if (q.w > 0.0 && q.w != 2.0) col += glow(t, q.xyz + vec3(0, 0.9, 0), q.w > 6.0 ? vec3(0.3, 1.5, 0.4) : q.w > 1.0 ? vec3(1, 0.4, 0.1) : vec3(0.3, 0.6, 1.5), 0.01);
+        vec2 f = vec2[](vec2(0.92, 0.4), vec2(0.7, 0.5), vec2(0.6, 0.0), vec2(1.3, 0.9), vec2(1.56, 0.0))[int(max(info.x, 0.0))];
+        if (info.x >= 0.0 && info.w == 0.0) col += glow(t + 0.15, m.xyz + vec3(sin(m.w) * f.x, charge[i].y > 0.0 ? -f.y : f.y, cos(m.w) * f.x), (armored(i) ? vec3(0.35, 0.4, 0.5) : vec3(1.2, 0.12, 0)) * min(distance(m.xyz, eye) * 0.4, 1.0) * (brain[i].w * 0.7 + 0.3 + 3.0 * float(brain[i].z > 0.0 || charge[i].w > 0.0)), 0.001);
     }
     for (int i = 0; i < 24 + dynamicZero; i++) {
         vec4 s = entity[16 + i];
@@ -1661,14 +1657,10 @@ void main() {
         if (b.w == 0.0) continue;
         float age = fract(b.w), size = 0.5 + age * 2.5;
         vec3 v = b.xyz - eye;
-        v -= ray * clamp(dot(v, ray), 0.0, t);
-        float puff = (1.0 - age) * exp(-dot(v, v) / size) * min(distance(b.xyz, eye) * 0.5, 1.0) * smoothstep(-0.3, 0.6, dot(normalize(b.xyz - eye), ray));
+        float d = length(v), a = dot(v, ray);
+        v -= ray * clamp(a, 0.0, t);
+        float puff = (1.0 - age) * exp(-dot(v, v) / size) * min(d * 0.5, 1.0) * smoothstep(-0.3, 0.6, a / d);
         col = b.w > 15.0 ? mix(col, vec3(0.1, 0, 0), puff * 0.6) : col + (b.w < 9.0 ? vec3(0.1, 0.25, 0.6) : vec3(1, 0.45, 0.1)) * puff * (1.0 - age) * 0.5;
-    }
-    for (int i = 0; i < 16 + dynamicZero; i++) {
-        vec4 m = monsterFrame(i), info = monster[i];
-        vec2 f = vec2[](vec2(0.92, 0.4), vec2(0.7, 0.5), vec2(0.6, 0.0), vec2(1.3, 0.9), vec2(1.56, 0.0))[int(max(info.x, 0.0))];
-        if (info.x >= 0.0 && info.w == 0.0) col += glow(t + 0.15, m.xyz + vec3(sin(m.w) * f.x, charge[i].y > 0.0 ? -f.y : f.y, cos(m.w) * f.x), (armored(i) ? vec3(0.35, 0.4, 0.5) : vec3(1.2, 0.12, 0)) * min(distance(m.xyz, eye) * 0.4, 1.0) * (brain[i].w * 0.7 + 0.3 + 3.0 * float(brain[i].z > 0.0 || charge[i].w > 0.0)), 0.001);
     }
     vec2 o = eye.xz - exitPos.xz, dd = ray.xz;
     float s = clamp(-dot(o, dd) / dot(dd, dd), 0.0, t);
@@ -1686,36 +1678,37 @@ void main() {
         float d = gun(gd * gt);
         if (d < 0.0005) {
             vec2 e = vec2(0.001, 0);
-            vec3 gn = normalize(vec3(gun(gd * gt + e.xyy), gun(gd * gt + e.yxy), gun(gd * gt + e.yyx)) - gun(gd * gt));
-            float key = max(dot(gn, normalize(vec3(-0.5, 1, -0.6))), 0.0);
-            col = (part == 2 ? (shown > 2.0 ? vec3(0.03, 0.027, 0.02) : vec3(0.06, 0.027, 0.011)) : shown == 2.0 ? vec3(0.024, 0.028, 0.014) : vec3(0.013, 0.014, 0.016)) * (1.0 + flash * vec3(3, 1.6, 0.6) * smoothstep(0.55, 0.95, gt)) * (key * 1.6 + 0.08 + homeLamp * 2.5 * max(gn.y, 0.0)) + vec3(0.25, 0.21, 0.17) * on * (part > 1 ? 0.3 : float(part < 1)) * pow(max(dot(reflect(gd, gn), normalize(vec3(-0.1, 0.5, 1))), 0.0), shown > 1.0 ? 90.0 : 40.0) + float(part == 1) * (shown == 1.0 ? vec3(1, 0.2, 0.03) * whirl * whirl * 0.5 : vec3(0.02, 0.2, 0.8) * (0.1 + max(0.0, 1.0 - fireCooldown * 2.0) * 0.4 + flash * 2.0)) + col * 0.25 * pow(max(1.0 + dot(gd, gn), 0.0), 5.0);
+            vec3 q = gd * gt, gn = normalize(vec3(gun(q + e.xyy), gun(q + e.yxy), gun(q + e.yyx)) - d);
+            float key = max(dot(gn, vec3(-0.4, 0.8, -0.45)), 0.0);
+            col = (part == 2 ? (shown > 2.0 ? vec3(0.03, 0.027, 0.02) : vec3(0.06, 0.027, 0.011)) : shown == 2.0 ? vec3(0.024, 0.028, 0.014) : vec3(0.013, 0.014, 0.016)) * (1.0 + flash * vec3(3, 1.6, 0.6) * smoothstep(0.55, 0.95, gt)) * (key * 1.6 + 0.08 + homeLamp * 2.5 * max(gn.y, 0.0)) + vec3(0.25, 0.21, 0.17) * on * (part > 1 ? 0.3 : float(part < 1)) * pow(max(dot(reflect(gd, gn), vec3(-0.1, 0.45, 0.9)), 0.0), shown > 1.0 ? 90.0 : 40.0) + float(part == 1) * (shown == 1.0 ? vec3(1, 0.2, 0.03) * whirl * whirl * 0.5 : vec3(0.02, 0.2, 0.8) * (0.1 + max(0.0, 1.0 - fireCooldown * 2.0) * 0.4 + flash * 2.0)) + col * 0.25 * pow(max(1.0 + dot(gd, gn), 0.0), 5.0);
             break;
         }
         gt += d;
         if (gt > 1.5) break;
     }
     vec2 mz = uv - muzzle, barrel = normalize(muzzle);
-    mz -= barrel * dot(mz, barrel) * 0.6;
+    mz -= barrel * min(dot(mz, barrel), 0.0) * 0.6;
     float spike = atan(mz.y, mz.x), shot = dot(tracerEnd, vec3(5)) + ammo.z;
-    col += (shown > 2.0 ? vec3(0.3, 0.5, 1) : vec3(1, 0.55, 0.2)) * flash * flash * 0.0025 / (dot(mz, mz) + 0.0003) * (1.0 + (pow(abs(sin(spike * 2.5 + shot)), 4.0) + pow(abs(sin(spike * 3.5 + shot * 1.7)), 9.0)) * (1.0 - dot(normalize(mz), barrel)) * flash * (shown > 2.0 ? 1.2 : 2.5) * smoothstep(0.02, 0.0, dot(mz, mz)));
+    s = dot(mz, mz);
+    col += (shown > 2.0 ? vec3(0.3, 0.5, 1) : vec3(1, 0.55, 0.2)) * flash * flash * 0.0025 / (s + 0.0003) * (1.0 + (pow(abs(sin(spike * 2.5 + shot)), 4.0) + pow(abs(sin(spike * 3.5 + shot * 1.7)), 9.0)) * (1.0 - dot(normalize(mz), barrel)) * flash * (shown > 2.0 ? 1.2 : 2.5) * smoothstep(0.02, 0.0, s));
 
     vec2 c = abs(uv);
     if (max(c.x, c.y) < 0.012 && min(c.x, c.y) < 0.0015 || length(uv) < 0.003) col = vec3(0.9) - vec3(0, 0.25, 0.28) * frenzy;
     c = abs(uv * rot(0.785));
-    if (max(c.x, c.y) < 0.04 && min(c.x, c.y) < 0.003 && max(c.x, c.y) > 0.015) col = mix(col, vec3(1, 0.1, 0), hitmark);
+    if (abs(max(c.x, c.y) - 0.0275) < 0.0125 && min(c.x, c.y) < 0.003) col = mix(col, vec3(1, 0.1, 0), hitmark);
 
-    col *= mix(vec3(1), vec3(0.9, 0.12, 0.08), clamp((hurt + frenzy * 0.08) * smoothstep(0.4, 2.0, dot(uv, uv)) + (1.0 - health + intensity * 0.5) * dot(uv, uv) * 0.16 * step(mod(musicStep + 3.0, 4.0), 1.0), 0.0, 0.85));
+    float r = dot(uv, uv), aspect = screen.y / screen.z;
+    col *= mix(vec3(1), vec3(0.9, 0.12, 0.08), clamp((hurt + frenzy * 0.08) * smoothstep(0.4, 2.0, r) + (1.0 - health + intensity * 0.5) * r * 0.16 * step(mod(musicStep + 3.0, 4.0), 1.0), 0.0, 0.85));
     for (int i = 0; i < 16 + dynamicZero; i++) {
         vec3 to = entity[i].xyz - eye;
         if (monster[i].x >= 0.0 && monster[i].w == 0.0 && brain[i].w > 0.0 && charge[i].y == 0.0) {
             float side = mod(atan(to.x, to.z) - yaw + 3.1416, 6.2832) - 3.1416;
-            col +=vec3(0.08, 0.004, 0) * smoothstep(8.0, 2.5, length(to)) * smoothstep(0.7, 1.4, abs(side)) * smoothstep(0.6, 1.0, uv.x * sign(side) * screen.z / screen.y) * (0.7 + 4.0 * hurt);
+            col += vec3(0.08, 0.004, 0) * smoothstep(8.0, 2.5, length(to)) * smoothstep(0.7, 1.4, abs(side)) * smoothstep(0.6, 1.0, uv.x * sign(side) / aspect) * (0.7 + 4.0 * hurt);
         }
     }
-    col *= fade * (1.0 - dot(uv, uv) * 0.12) * (1.0 - min(screen.w, 1.0) * 0.7);
+    col *= fade * (1.0 - r * 0.12) * (1.0 - min(screen.w, 1.0) * 0.7);
     if (dead > 0.0) col = mix(col, vec3(dot(col, vec3(0.3))) * vec3(0.8, 0, 0), min(dead, 0.8));
 
-    float aspect = screen.y / screen.z;
     if (abs(uv.y) > 0.8 && ending == 0.0) {
         vec2 bar = uv - vec2(-aspect + 0.1, -0.9);
         if (bar.x > 0.0 && bar.x < health * 0.5 && abs(bar.y) < 0.012) col = vec3(0.8, 0.05, 0.02);
@@ -1737,23 +1730,28 @@ void main() {
     vec3 g = sqrt(col / (col + 0.6667));
     g *= mix(vec3(0.8, 0.95, 1.2), vec3(1.1, 1.0, 0.85), smoothstep(0.05, 0.4, dot(g, vec3(0.3, 0.6, 0.1))));
     fragColor = vec4(g + (hash(uv + fract(time)) - 0.5) * 0.04 * min(g * 8.0 + 0.3, 1.0), 1.0);
-    float stage = twist(), text = ending > 0.0 ? 0.0 : print(vec2(-aspect + 0.1, 0.84), 0.01, 9, fuses) + (weapon > 0.0 ? print(vec2(aspect - 0.62, -0.925), 0.01, 10, ammo[int(weapon)]) : 0.0);
+    float text;
     if (ending > 0.0)
-        text += print(vec2(-0.55, 0.3), 0.025, 5, 0.0) + print(vec2(-0.264, 0.05), 0.012, 6, runTime) + print(vec2(-0.264, -0.08), 0.012, 7, deaths) + print(vec2(-0.264, -0.21), 0.012, 18, kills) + (ending > 2.0 ? print(vec2(-0.456, -0.62), 0.012, 8, 0.0) : 0.0);
-    else if (screen.w > 0.0)
-        text += print(vec2(screen.w * -0.3, 0.0), 0.012, 0, 0.0) * step(uv.x, screen.w - 0.66);
-    else if (dead > 2.0)
-        text += print(vec2(-0.476, -0.2), 0.014, 1, 0.0);
-    else if (banner < 4.0)
-        text += print(vec2(-0.35, 0.62), 0.025, 2, 0.0) + print(vec2(level < 10.0 ? 0.05 : 0.15, 0.62), 0.025, 10, level) + print(vec2(-0.6, 0.5), 0.012, int(stage) + 12, 0.0);
-    else if (notice > 0.0)
-        text += print(vec2(-0.36, 0.62), 0.012, 3, 0.0) + print(vec2(-0.504, 0.54), 0.012, 11, 0.0) * step(upgrades[int(boosted)], 1.0);
-    else if (exitOpen > 0.0 && exitOpen < 1.0)
-        text += print(vec2(-0.456, 0.62), 0.012, 4, 0.0);
+        text = print(vec2(-0.55, 0.3), 0.025, 5, 0.0) + print(vec2(-0.264, 0.05), 0.012, 6, runTime) + print(vec2(-0.264, -0.08), 0.012, 7, deaths) + print(vec2(-0.264, -0.21), 0.012, 18, kills) + (ending > 2.0 ? print(vec2(-0.456, -0.62), 0.012, 8, 0.0) : 0.0);
+    else {
+        text = print(vec2(-aspect + 0.1, 0.84), 0.01, 9, fuses) + (weapon > 0.0 ? print(vec2(aspect - 0.62, -0.925), 0.01, 10, ammo[int(weapon)]) : 0.0);
+        if (screen.w > 0.0)
+            text += print(vec2(screen.w * -0.3, 0.0), 0.012, 0, 0.0) * step(uv.x, screen.w - 0.66);
+        else if (dead > 2.0)
+            text += print(vec2(-0.476, -0.2), 0.014, 1, 0.0);
+        else if (banner < 4.0)
+            text += print(vec2(-0.35, 0.62), 0.025, 2, 0.0) + print(vec2(level < 10.0 ? 0.05 : 0.15, 0.62), 0.025, 10, level) + print(vec2(-0.6, 0.5), 0.012, int(twist()) + 12, 0.0);
+        else if (notice > 0.0)
+            text += print(vec2(-0.36, 0.62), 0.012, 3, 0.0) + print(vec2(-0.504, 0.54), 0.012, 11, 0.0) * step(upgrades[int(boosted)], 1.0);
+        else if (exitOpen > 0.0 && exitOpen < 1.0)
+            text += print(vec2(-0.456, 0.62), 0.012, 4, 0.0);
+    }
     vec3 goal = hunter(12) && monster[12].x >= 0.0 ? entity[12].xyz : exitPos;
     float nearest = 1e9;
-    for (int i = 0; i < 4 + dynamicZero; i++)
-        if (exitOpen == 0.0 && pickup[i].w > 0.0 && pickup[i].w != 2.0 && distance(pickup[i].xyz, eye) < nearest) nearest = distance(pickup[i].xyz, eye), goal = pickup[i].xyz;
+    for (int i = 0; i < 4 + dynamicZero; i++) {
+        float d = distance(pickup[i].xyz, eye);
+        if (exitOpen == 0.0 && pickup[i].w > 0.0 && pickup[i].w != 2.0 && d < nearest) nearest = d, goal = pickup[i].xyz;
+    }
     float bearing = mod(atan(goal.x - eye.x, goal.z - eye.z) - yaw + 3.1416, 6.2832) - 3.1416;
     text += float(ending == 0.0 && dead == 0.0 && banner > 4.0) * step(abs(uv.x - clamp(bearing * 1.5, -1.2, 1.2)), 0.006) * step(abs(uv.y - 0.9), 0.02 + 0.015 * step(abs(bearing), 0.15));
     fragColor.rgb = mix(fragColor.rgb, vec3(0.9, 0.85, 0.8), min(text, 1.0));

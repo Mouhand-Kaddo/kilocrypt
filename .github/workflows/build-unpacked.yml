@@ -1,0 +1,28 @@
+name: Build Windows Unpacked (MSVC)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Generate shader header and build with MSVC
+        shell: cmd
+        run: |
+          if not exist build mkdir build
+          python tools\embed_shader.py src\game.glsl build\shader_unpacked.h
+          rc /nologo /I tools\winres /fo build\kilocrypt.res tools\winres\kilocrypt.rc
+          cl /nologo /O2 /W4 /GS /guard:cf /I src /I build src\windows_unpacked.c build\kilocrypt.res /Fe:build\kilocrypt-unpacked.exe /link /SUBSYSTEM:WINDOWS,6.0 /MANIFEST:NO /DYNAMICBASE /HIGHENTROPYVA /NXCOMPAT /CETCOMPAT /GUARD:CF opengl32.lib winmm.lib gdi32.lib user32.lib
+          certutil -hashfile build\kilocrypt-unpacked.exe SHA256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kilocrypt-unpacked-windows-x64
+          path: build/kilocrypt-unpacked.exe

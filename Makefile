@@ -54,7 +54,26 @@ CRINKLE = /ENTRY:entry /SUBSYSTEM:WINDOWS /LARGEADDRESSAWARE $(CRINKLE_MODE) /HA
 CRINKLER_FLAGS = $(CRINKLE) /REPORT:$(BUILD)/crinkler-report.html /LIBPATH:$(BUILD)
 WINHOST ?=
 
-.PHONY: windows windows-dev windows-diag windows-remote
+.PHONY: windows windows-dev windows-diag windows-remote windows-unpacked
+
+MINGW_CC ?= x86_64-w64-mingw32-gcc
+MINGW_WINDRES ?= x86_64-w64-mingw32-windres
+
+$(BUILD)/shader_unpacked.h: src/game.glsl tools/embed_shader.py
+	@mkdir -p $(BUILD)
+	python3 tools/embed_shader.py $< $@
+
+$(BUILD)/kilocrypt-res.o: tools/winres/kilocrypt.rc tools/winres/kilocrypt.manifest
+	@command -v $(MINGW_WINDRES) >/dev/null || { echo "Need $(MINGW_WINDRES) (on Arch Linux: sudo pacman -S mingw-w64-gcc)"; exit 1; }
+	@mkdir -p $(BUILD)
+	$(MINGW_WINDRES) -Itools/winres $< -O coff -o $@
+
+$(BUILD)/kilocrypt-unpacked.exe: src/windows_unpacked.c $(BUILD)/shader_unpacked.h $(BUILD)/kilocrypt-res.o
+	@command -v $(MINGW_CC) >/dev/null || { echo "Need $(MINGW_CC) (on Arch Linux: sudo pacman -S mingw-w64-gcc)"; exit 1; }
+	$(MINGW_CC) -O2 -Wall -Wextra -Isrc -I$(BUILD) src/windows_unpacked.c $(BUILD)/kilocrypt-res.o -o $@ -mwindows -lopengl32 -lwinmm -lgdi32 -luser32 -Wl,--nxcompat,--dynamicbase,--high-entropy-va,--tsaware,--major-subsystem-version,6,--minor-subsystem-version,0
+
+windows-unpacked: $(BUILD)/kilocrypt-unpacked.exe
+	@ls -l $<
 
 $(BUILD)/windows-dev.obj: src/windows.c $(BUILD)/shader.h
 	$(CC) $(WIN_CFLAGS) -DDEV -c $< -o $@

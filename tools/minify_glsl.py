@@ -19,7 +19,7 @@ ivec2 ivec3 ivec4 bvec2 bvec3 bvec4 uint uvec2 uvec3 uvec4 sampler2D struct prec
 version main radians degrees sin cos tan asin acos atan pow exp log exp2 log2 sqrt inversesqrt abs sign floor ceil
 fract mod min max clamp mix step smoothstep length distance dot cross normalize reflect refract texture round trunc
 tanh sinh cosh fwidth dFdx dFdy any all not equal lessThan greaterThan transpose inverse determinant
-buffer std430 binding local_size_x ifdef ifndef endif define
+buffer std430 binding local_size_x ifdef ifndef endif define barrier memoryBarrier
 """.split())
 TYPES = set("float int uint bool vec2 vec3 vec4 ivec2 ivec3 ivec4 uvec2 uvec3 uvec4 bvec2 bvec3 bvec4 mat2 mat3 mat4 void".split())
 TOKEN = re.compile(r"(?P<comment>//[^\n]*|/\*.*?\*/)|(?P<directive>#[^\n]*)|(?P<number>\d+\.\d*(?:[eE][-+]?\d+)?|\.\d+(?:[eE][-+]?\d+)?|\d+(?:[eE][-+]?\d+)?[uU]?)|(?P<ident>[A-Za-z_]\w*)|(?P<space>\s+)|(?P<other>.)", re.S)

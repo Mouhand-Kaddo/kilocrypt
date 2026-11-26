@@ -1,0 +1,32 @@
+#include <winver.h>
+
+1 24 "kilocrypt.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,1,0,0
+PRODUCTVERSION  1,1,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     0
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "Mouhand Kaddo\0"
+            VALUE "FileDescription",  "Kilocrypt - First-person horror shooter (unpacked 64-bit)\0"
+            VALUE "FileVersion",      "1.1.0.0\0"
+            VALUE "InternalName",     "kilocrypt\0"
+            VALUE "LegalCopyright",   "MIT License\0"
+            VALUE "OriginalFilename", "kilocrypt-unpacked.exe\0"
+            VALUE "ProductName",      "Kilocrypt\0"
+            VALUE "ProductVersion",   "1.1.0\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

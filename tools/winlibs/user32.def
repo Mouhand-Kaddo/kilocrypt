@@ -12,3 +12,4 @@ GetForegroundWindow@0
 MessageBoxA@16
 IsWindow@4
 SystemParametersInfoA@16
+MapVirtualKeyA@8

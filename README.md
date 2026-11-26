@@ -8,12 +8,13 @@ Six floors, each a 4×4 grid of cells joined by arched doorways and merged into 
 
 | Build | Size |
 |---|---|
-| `build/kilocrypt.exe` (Windows) | 16384 bytes |
-| `build/kilocrypt` (Linux) | 16044 bytes |
+| `build/kilocrypt.exe` (Windows, 16 KB packed) | 16384 bytes |
+| `build/kilocrypt` (Linux, 16 KB packed) | 16057 bytes |
+| `build/kilocrypt-unpacked.exe` (Windows 64-bit, unpacked) | 202752 bytes |
 
 ## Play
 
-Download `kilocrypt.exe` (Windows) or `kilocrypt` (Linux) from the [releases page](https://github.com/Mouhand-Kaddo/kilocrypt/releases) and run it. It opens fullscreen at your desktop resolution. On Linux, run `chmod +x kilocrypt` first.
+Download `kilocrypt.exe` (Windows, 16 KB), `kilocrypt-unpacked.exe` (Windows 64-bit, unpacked for fewer antivirus false positives) or `kilocrypt` (Linux) from the [releases page](https://github.com/Mouhand-Kaddo/kilocrypt/releases) and run it. It opens fullscreen at your desktop resolution. On Linux, run `chmod +x kilocrypt` first.
 
 ## Controls
 
@@ -40,16 +41,19 @@ The shotgun never runs out. The other guns use ammo from crates and dead monster
 
 ## Antivirus warnings
 
-The Windows exe is compressed with Crinkler, the packer most tiny demos use. Some malware uses packers too, so a few antivirus tools flag any packed file they don't recognise. Microsoft Defender, Avast, AVG, Bitdefender, ESET, Kaspersky, Norton, McAfee and Malwarebytes pass it; 8 of 69 engines on [VirusTotal](https://www.virustotal.com/gui/file/31c5a9e1f3afaa9b3d353b0c552cc3a7b2c502124950541d69623fcacaf7f47d) flag it. The Linux build passes all of them. Every byte is built from the source in this repository, and the release page lists SHA-256 checksums.
+The 16 KB Windows exe (`kilocrypt.exe`) is compressed with Crinkler, the packer most tiny demos use. Some malware uses packers too, so a few antivirus tools flag any packed file they don't recognise. Microsoft Defender, Avast, AVG, Bitdefender, ESET, Kaspersky, Norton, McAfee, Google and Malwarebytes pass it; 8 of 69 engines on [VirusTotal](https://www.virustotal.com/gui/file/580e24a90bf7cce3f00e8918d5c6d6d80d754acac987fc31edf1e891a95eedd2) flag it.
+
+If you'd rather avoid a packed executable, download `kilocrypt-unpacked.exe` instead — a standard 64-bit Windows build compiled with MSVC without any packer (1 of 68 engines on [VirusTotal](https://www.virustotal.com/gui/file/c9bbe6aafba4575582ab18c7f629c803f6995563db5e9b5ceaab0eb41f551be8); Microsoft Defender, Google, ESET, Bitdefender, Kaspersky, Avast, AVG, Norton, McAfee and Malwarebytes all pass it). The Linux build passes [0 of 64](https://www.virustotal.com/gui/file/baa23ae87171e860d28bf1781e4edcbc687516e1c127b4ce2e1bbb4510d2fec5). Every byte is built from the source in this repository, and the release page lists SHA-256 checksums.
 
 ## Building
 
-Needs `clang`, `python3`, `glslangValidator` and SDL2 headers. Windows builds also need `llvm-dlltool` and `wine`; `make` downloads Crinkler 3.0b and checks its checksum.
+Needs `clang`, `python3`, `glslangValidator` and SDL2 headers. Packed Windows builds also need `llvm-dlltool` and `wine`; `make` downloads Crinkler 3.0b and checks its checksum. Unpacked 64-bit Windows builds use `mingw-w64-gcc` locally or MSVC (`cl.exe` / `.github/workflows/build-unpacked.yml`) on Windows.
 
 ```sh
-make linux     # build/kilocrypt
-make windows   # build/kilocrypt.exe
-make dev       # unpacked Linux debug build with a bot player
+make linux            # build/kilocrypt
+make windows          # build/kilocrypt.exe
+make windows-unpacked # build/kilocrypt-unpacked.exe (MinGW-w64)
+make dev              # unpacked Linux debug build with a bot player
 ```
 
 `build/dev-game` runs a scripted bot in a 960×540 window. `FRAMES`, `DUMP=n` (save a PPM every n frames into `build/dev/`), `LEVEL` and `DEFINES` control it. Extra defines: `SHOWCASE` (monster line-up), `STAND`, `SOUNDTEST` (every sound, then the music from calm to full combat), `ENDING` and `RESPAWN`. Without a window, `tools/linux-test/shot.sh` renders the same modes headlessly, and `make check` runs full packs plus the bot scenarios in `tools/linux-test/scenarios.py`.
@@ -62,5 +66,5 @@ python3 tools/ppm2png.py build/dev/*.ppm
 ## Layout
 
 - `src/game.glsl`: the whole game. `#ifdef GAME` is a compute shader (physics, monster AI and pathfinding, level generation, weapons, pickups, particles, synth and music); the rest is the full-screen fragment renderer (ray-traced rooms, ray-marched monsters, pixel-font HUD). Both share one storage buffer.
-- `src/linux.c`, `src/windows.c`: platform layers that pass input in, dispatch the compute shader, play its audio and draw one rectangle.
-- `tools/`: shader minifier, Linux ELF packer and its decoder stub, Crinkler fetch script, Windows import definitions.
+- `src/linux.c`, `src/windows.c`, `src/windows_unpacked.c`: platform layers that pass input in, dispatch the compute shader, play its audio and draw one rectangle.
+- `tools/`: shader minifier, shader header generator, Linux ELF packer and its decoder stub, Crinkler fetch script, Windows import definitions and resources.
