@@ -2,7 +2,7 @@
 
 A first-person horror shooter in under 16 KB, for Linux and Windows: the smallest native true-3D first-person shooter we know of (as of 2026). The smallest native true-3D ones we found before it are shooter32k (31,232 bytes) and nervk (about 32 KB); DEADWEIGHT (15,132 bytes) is smaller but a 2.5D raycaster.
 
-![The floor-four hunter caught in the flashlight](assets/screenshot.jpg)
+![Kilocrypt gameplay](assets/gameplay.gif)
 
 Six floors, each a 4×4 grid of cells joined by arched doorways and merged into halls and L-shaped rooms: crypts, storerooms, meat lockers, boiler rooms and catwalks. The power is out. Find the three fuses on each floor; every fuse turns more lamps back on, and all three power the exit. Monsters keep crawling out of the dark rooms: crawler swarms, screamers that run at you and explode, tentacle masses that spit from range and brutes that charge. Each floor bends one rule: alarms kill the lights, crawlers drop from the ceiling, a brute that cannot die before the third fuse hunts you, the power stays dead. Floor six is a boss that only fuses can weaken. Beat it and the run starts again, harder, with more monsters awake and the rules in a new order.
 
@@ -36,11 +36,11 @@ The shotgun never runs out. The other guns use ammo from crates and dead monster
 
 - OpenGL 4.3 GPU. Without one the game shows "Needs OpenGL 4.3" and quits.
 - Windows: a CPU with SSE4.2.
+- Linux: x86-64 and SDL2 (or `sdl2-compat`).
 
 ## Antivirus warnings
 
 The Windows exe is compressed with Crinkler, the packer most tiny demos use. Some malware uses packers too, so a few antivirus tools flag any packed file they don't recognise. Microsoft Defender, Avast, AVG, Bitdefender, ESET, Kaspersky, Norton, McAfee and Malwarebytes pass it; 8 of 69 engines on [VirusTotal](https://www.virustotal.com/gui/file/31c5a9e1f3afaa9b3d353b0c552cc3a7b2c502124950541d69623fcacaf7f47d) flag it. The Linux build passes all of them. Every byte is built from the source in this repository, and the release page lists SHA-256 checksums.
-- Linux: x86-64 and SDL2 (or `sdl2-compat`).
 
 ## Building
 
